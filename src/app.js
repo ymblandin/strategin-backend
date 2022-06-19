@@ -10,10 +10,6 @@ app.use(express.json());
 // Use the cookie parser middleware
 app.use(cookieParser());
 
-app.get('/', (req, res) => {
-  res.send('Test');
-});
-
 // Connect to MongoDB
 mongoose.connect(process.env.DB_URI, { useNewUrlParser: true }, () => {
   console.log('Connected to DB!');
