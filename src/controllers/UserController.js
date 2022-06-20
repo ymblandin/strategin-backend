@@ -1,4 +1,5 @@
 const User = require('../models/UserManager');
+const UserValidation = require('../models/UserValidation');
 const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 
@@ -11,27 +12,38 @@ class UserController {
       return;
     }
 
-    try {
-      const hashPassword = await argon2.hash(password);
+    User.findOne({ email: email })
+      .then(async (data) => {
+        if (data) {
+          res.status(409).send({ error: 'Email already in use' });
+        } else {
+          try {
+            const hashPassword = await argon2.hash(password);
 
-      const user = new User({
-        email: email,
-        password: hashPassword,
+            const user = new User({
+              email: email,
+              password: hashPassword,
+            });
+
+            user
+              .save()
+              .then((data) => {
+                res.status(200).send({ id: data._id, email: data.email });
+              })
+              .catch((err) => {
+                console.error(err);
+                res.status(500).send({ error: err.message });
+              });
+          } catch (err) {
+            console.error(err);
+            res.status(500).send({ error: err.message });
+          }
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send({ error: err.message });
       });
-
-      user
-        .save()
-        .then((data) => {
-          res.status(200).send({ id: data._id, email: data.email });
-        })
-        .catch((err) => {
-          console.error(err);
-          res.status(500).send({ error: err.message });
-        });
-    } catch (err) {
-      console.error(err);
-      res.status(500).send({ error: err.message });
-    }
   };
 
   static login = (req, res) => {
@@ -73,9 +85,42 @@ class UserController {
   };
 
   static browse = (req, res) => {
-    User.find().then((data) => {
-      console.log(data);
-    });
+    User.find()
+      .then((data) => {
+        res.status(200).send(
+          data.map((row) => {
+            return { id: row._id, email: row.email };
+          })
+        );
+      })
+      .catch((err) => {
+        console.error(err);
+        res.status(500).send({
+          error: err.message,
+        });
+      });
+  };
+
+  static authorization = (req, res, next) => {
+    const token = req.cookies.access_token;
+    if (!token) {
+      return res.status(401).send({ error: 'Unauthorized user' });
+    }
+    try {
+      const data = jwt.verify(token, process.env.JWT_AUTH_SECRET);
+      return next();
+    } catch (err) {
+      return res.status(403).send({ error: 'Operation forbidden' });
+    }
+  };
+
+  static validation = async (req, res, next) => {
+    try {
+      await UserValidation.validate(req.body, { abortEarly: false });
+      return next();
+    } catch (err) {
+      return res.status(400).send({ error: err });
+    }
   };
 }
 
