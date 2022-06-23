@@ -1,0 +1,10 @@
+# To connect to the MangoDB database
+
+DB_URI=URL_GIVEN_BY_ATLAS
+
+PORT=5000
+
+JWT_AUTH_SECRET=SECRET_KEY
+
+FRONTEND_URL=http://localhost:3000
+
