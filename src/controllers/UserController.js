@@ -14,7 +14,7 @@ class UserController {
 
     User.findOne({ email: email })
       .then(async (data) => {
-        if (data) {
+        if (data.length) {
           res.status(409).send({ error: 'Email already in use' });
         } else {
           try {
